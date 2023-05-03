@@ -1,0 +1,15 @@
+[{
+  "Name": "latex-plugin",
+  "Description": "Latex plugin for Micro editor. Basic aim is to provide synctex support.",
+  "Website": "https://github.com/chykcha3/micro-plugin-latex",
+  "Tags": ["latex", "synctex"],
+  "Versions": [
+    {
+      "Version": "0.1.0",
+      "Url": "https://github.com/user/plugin/archive/v1.0.0.zip",
+      "Require": {
+        "micro": ">=1.0.3"
+      }
+    }
+  ]
+}]
