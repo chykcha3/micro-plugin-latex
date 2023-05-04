@@ -1,4 +1,4 @@
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 
 
 local micro = import("micro")
@@ -24,12 +24,12 @@ end
 function onBufferOpen(buf)
 	isTex = (buf:FileType() == "tex")
 	if isTex then
-		fileName = buf:GetName()
-		truncFileName = string.sub(fileName, 0, string.len(fileName) - 4)
-		syncFileName = truncFileName .. ".synctex.from-zathura-to-micro"
-		scriptFifoWriteFileName = truncFileName .. ".fifo-writer.sh"
+		local fileName = buf:GetName()
+		local truncFileName = string.sub(fileName, 0, string.len(fileName) - 4)
+		local syncFileName = truncFileName .. ".synctex.from-zathura-to-micro"
+		local scriptFifoWriteFileName = truncFileName .. ".fifo-writer.sh"
 		local scriptFifoWrite = "echo \"$@\" > " .. syncFileName
-		local scriptFifoRead = "while true;do if read line; then echo $line; fi;sleep 1; done < " .. syncFileName
+		local scriptFifoRead = "while true;do if read line; then echo $line; fi;sleep 0.5; done < " .. syncFileName
 		
 		shell.ExecCommand("mkfifo", syncFileName)
 		local f = io.open(scriptFifoWriteFileName, "w")
@@ -47,14 +47,18 @@ function onSave(bp)
 		if bp.Buf:Modified() then
 			compile(bp)
 		end
-		synctexForward(bp, nil)
+		synctexForward(bp)
 	end
 end
 
 
 function synctexForward(bp)
+	local fileName = bp.Buf:GetName()
+	local truncFileName = string.sub(fileName, 0, string.len(fileName) - 4)
 	local syncFileName = truncFileName .. ".synctex.from-zathura-to-micro"
+	local scriptFifoWriteFileName = truncFileName .. ".fifo-writer.sh"
 	local pdfFileName = truncFileName .. ".pdf"
+
 	local cursor = bp.Buf:GetActiveCursor()
 	local zathuraArgPos = string.format(" --synctex-forward=%i:%i:%s", cursor.Y, cursor.X, fileName)
 	local zathuraArgSynctexBackward = " --synctex-editor-command=\'" .. scriptFifoWriteFileName .." %{line}\'"
@@ -73,6 +77,16 @@ end
 
 function compile(bp)
 
+end
+
+
+function preQuit(bp)
+	local fileName = bp.Buf:GetName()
+	local truncFileName = string.sub(fileName, 0, string.len(fileName) - 4)
+	local syncFileName = truncFileName .. ".synctex.from-zathura-to-micro"
+	local scriptFifoWriteFileName = truncFileName .. ".fifo-writer.sh"
+
+	shell.RunCommand("rm " .. syncFileName .. " " .. scriptFifoWriteFileName)
 end
 
 
