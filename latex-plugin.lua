@@ -1,4 +1,4 @@
-VERSION = "0.2.1"
+VERSION = "0.3.0"
 
 
 local micro = import("micro")
@@ -42,10 +42,17 @@ function onBufferOpen(buf)
 end
 
 
+function preSave(bp)
+	if isTex then
+		isBufferModified = bp.Buf:Modified()
+	end
+end
+
+
 function onSave(bp)
 	if isTex then
-		if bp.Buf:Modified() then
-			compile(bp)
+		if isBufferModified then
+			errorMessage = compile(bp)
 		end
 		synctexForward(bp)
 	end
@@ -76,7 +83,16 @@ end
 
 
 function compile(bp)
-
+	local fileName = bp.Buf:GetName()
+	local output = shell.RunCommand("pdflatex -synctex 15 -interaction nonstopmode -file-line-error " .. fileName)
+	
+	local error = string.match(output, "[^\n/]+:%w+:[^\n]+")
+	local time = string.match(output, "[^\nreal ]:%w+:[^\n]+")
+	if error then
+		micro.InfoBar():Message(error)
+	else
+		micro.InfoBar():Message("ok!")
+	end
 end
 
 
@@ -86,7 +102,8 @@ function preQuit(bp)
 	local syncFileName = truncFileName .. ".synctex.from-zathura-to-micro"
 	local scriptFifoWriteFileName = truncFileName .. ".fifo-writer.sh"
 
-	shell.RunCommand("rm " .. syncFileName .. " " .. scriptFifoWriteFileName)
+	shell.RunCommand("rm " .. syncFileName)
+	shell.RunCommand("rm " .. scriptFifoWriteFileName)
 end
 
 
