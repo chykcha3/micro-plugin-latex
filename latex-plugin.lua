@@ -1,4 +1,4 @@
-VERSION = "0.3.1"
+VERSION = "0.3.2"
 
 
 local micro = import("micro")
@@ -29,7 +29,7 @@ function onBufferOpen(buf)
 		local syncFileName = truncFileName .. ".synctex.from-zathura-to-micro"
 		local scriptFifoWriteFileName = truncFileName .. ".fifo-writer.sh"
 		local scriptFifoWrite = "echo \"$@\" > " .. syncFileName
-		local scriptFifoRead = "while [[ -p " .. syncFileName .. " ]];do if read line; then echo $line; fi;sleep 0.5; done < " .. syncFileName
+		local scriptFifoRead = "while true;do if read line; then echo $line; fi;sleep 0.5; done < " .. syncFileName
 		
 		shell.ExecCommand("mkfifo", syncFileName)
 		local f = io.open(scriptFifoWriteFileName, "w")
@@ -37,7 +37,7 @@ function onBufferOpen(buf)
 		f:close()
 		shell.RunCommand("chmod 755 " .. scriptFifoWriteFileName)
 
-		shell.JobStart(scriptFifoRead, synctexBackward, nil, dummyFunc)
+		jobFifoRead = shell.JobStart(scriptFifoRead, synctexBackward, nil, dummyFunc)
 	end
 end
 
@@ -84,6 +84,7 @@ end
 
 function compile(bp)
 	local fileName = bp.Buf:GetName()
+	shell.RunCommand("pdflatex -synctex 0 -interaction nonstopmode -draftmode " .. fileName)
 	local output = shell.RunCommand("pdflatex -synctex 15 -interaction nonstopmode -file-line-error " .. fileName)
 	
 	local error = string.match(output, "[^\n/]+:%w+:[^\n]+")
@@ -97,13 +98,16 @@ end
 
 
 function preQuit(bp)
-	local fileName = bp.Buf:GetName()
-	local truncFileName = string.sub(fileName, 0, string.len(fileName) - 4)
-	local syncFileName = truncFileName .. ".synctex.from-zathura-to-micro"
-	local scriptFifoWriteFileName = truncFileName .. ".fifo-writer.sh"
+	if isTex then
+		local fileName = bp.Buf:GetName()
+		local truncFileName = string.sub(fileName, 0, string.len(fileName) - 4)
+		local syncFileName = truncFileName .. ".synctex.from-zathura-to-micro"
+		local scriptFifoWriteFileName = truncFileName .. ".fifo-writer.sh"
 
-	shell.RunCommand("rm " .. syncFileName)
-	shell.RunCommand("rm " .. scriptFifoWriteFileName)
+		shell.JobStop(jobFifoRead)
+		shell.RunCommand("rm " .. syncFileName)
+		shell.RunCommand("rm " .. scriptFifoWriteFileName)
+	end
 end
 
 
