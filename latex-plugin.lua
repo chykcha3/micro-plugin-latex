@@ -1,4 +1,4 @@
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 
 
 local micro = import("micro")
@@ -29,7 +29,7 @@ function onBufferOpen(buf)
 		local syncFileName = truncFileName .. ".synctex.from-zathura-to-micro"
 		local scriptFifoWriteFileName = truncFileName .. ".fifo-writer.sh"
 		local scriptFifoWrite = "echo \"$@\" > " .. syncFileName
-		local scriptFifoRead = "while true;do if read line; then echo $line; fi;sleep 0.5; done < " .. syncFileName
+		local scriptFifoRead = "while [[ -p " .. syncFileName .. " ]];do if read line; then echo $line; fi;sleep 0.5; done < " .. syncFileName
 		
 		shell.ExecCommand("mkfifo", syncFileName)
 		local f = io.open(scriptFifoWriteFileName, "w")
