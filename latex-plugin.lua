@@ -1,4 +1,4 @@
-VERSION = "0.3.2"
+VERSION = "0.4.0"
 
 
 local micro = import("micro")
@@ -51,10 +51,13 @@ end
 
 function onSave(bp)
 	if isTex then
-		if isBufferModified then
-			errorMessage = compile(bp)
+		local isError = lint(bp)
+		if not isError then
+			if isBufferModified then
+				errorMessage = compile(bp)
+			end
+			synctexForward(bp)
 		end
-		synctexForward(bp)
 	end
 end
 
@@ -79,21 +82,35 @@ function synctexBackward(pos)
 	local bp = micro.CurPane()
 	
 	bp:GotoCmd({string.sub(pos, 0, string.len(pos) - 1)})
+	--bp:GotoCmd({string.sub(pos, 1, -2)})
+end
+
+
+function lint(bp)
+	local fileName = bp.Buf:GetName()
+	local truncFileName = string.sub(fileName, 0, string.len(fileName) - 4)
+
+	-- syncex=15 added because otherwise pdflatex cleans up synctex files as well
+	local output = shell.RunCommand("pdflatex -synctex 15 -interaction nonstopmode -draftmode -file-line-error " .. truncFileName)
+	local error = string.match(output, "[^\n/]+:%w+:[^\n]+")
+	if error then
+		micro.InfoBar():Message(error)
+		local errorPos = string.sub(string.match(error, ":%w+:"), 2, -2)
+		micro.CurPane():GotoCmd({errorPos})
+		return true
+	else
+		return false
+	end
 end
 
 
 function compile(bp)
 	local fileName = bp.Buf:GetName()
-	shell.RunCommand("pdflatex -synctex 0 -interaction nonstopmode -draftmode " .. fileName)
-	local output = shell.RunCommand("pdflatex -synctex 15 -interaction nonstopmode -file-line-error " .. fileName)
+	local truncFileName = string.sub(fileName, 0, string.len(fileName) - 4)
 	
-	local error = string.match(output, "[^\n/]+:%w+:[^\n]+")
-	local time = string.match(output, "[^\nreal ]:%w+:[^\n]+")
-	if error then
-		micro.InfoBar():Message(error)
-	else
-		micro.InfoBar():Message("ok!")
-	end
+	shell.RunCommand("bibtex " .. truncFileName)
+	shell.RunCommand("pdflatex -synctex 15 -interaction nonstopmode -draftmode " .. truncFileName)
+	shell.RunCommand("pdflatex -synctex 15 -interaction nonstopmode " .. truncFileName)
 end
 
 
