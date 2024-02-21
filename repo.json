@@ -1,5 +1,5 @@
 [{
-  "Name": "latex-plugin",
+  "Name": "latexplugin",
   "Description": "Latex plugin for Micro editor. Main aim is to provide synctex support.",
   "Website": "https://github.com/chykcha3/micro-plugin-latex",
   "Tags": ["latex", "synctex"],
