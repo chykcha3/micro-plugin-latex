@@ -6,7 +6,7 @@
   "Versions": [
     {
       "Version": "0.4.2",
-      "Url": "",
+      "Url": "https://github.com/chykcha3/micro-plugin-latex/archive/v0.4.2.zip",
       "Require": {
         "micro": ">=1.0.0"
       }
